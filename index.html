@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K230 專案實驗室入口</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;       /* 主色調：科技藍 */
+            --hover-color: #1d4ed8;
+            --bg-color: #f1f5f9;            /* 背景：淡灰 */
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --accent-color: #3b82f6;        /* 圖示線條顏色 */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 90%;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+            font-weight: 800;
+            letter-spacing: -0.05rem;
+        }
+
+        p.subtitle {
+            font-size: 1.1rem;
+            color: var(--text-sub);
+            margin-bottom: 3.5rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 2.5rem 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 滑鼠懸停效果 */
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-color: var(--primary-color);
+        }
+
+        .card:hover h2 {
+            color: var(--primary-color);
+        }
+
+        /* SVG 圖示樣式 */
+        .icon-box {
+            width: 80px;
+            height: 80px;
+            background: #eff6ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            transition: background 0.3s;
+        }
+
+        .card:hover .icon-box {
+            background: #dbeafe;
+        }
+
+        .icon-box svg {
+            width: 40px;
+            height: 40px;
+            stroke: var(--primary-color);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        .card h2 {
+            margin: 0.5rem 0 1rem 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            transition: color 0.3s;
+        }
+
+        .card p {
+            color: var(--text-sub);
+            line-height: 1.6;
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        footer {
+            margin-top: 4rem;
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>K230 專案導覽</h1>
+        <p class="subtitle">Canaan Kendryte K230 AI 開發板學習資源</p>
+
+        <div class="grid">
+            <!-- 第一個連結：YOLO 實驗室 -->
+            <a href="k230-yolo-lab.html" class="card">
+                <div class="icon-box">
+                    <!-- 繪製一個「AI 視覺」圖示：眼睛 + 掃描框 -->
+                    <svg viewBox="0 0 24 24">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M3 3h4M3 3v4 M21 3h-4M21 3v4 M3 21h4M3 21v-4 M21 21h-4M21 21v-4"></path>
+                    </svg>
+                </div>
+                <h2>YOLO 程序互動實驗室</h2>
+                <p>深入解析 K230 的物件偵測代碼。透過互動式圖解，理解 Python 代碼如何驅動 AI 模型。</p>
+            </a>
+
+            <!-- 第二個連結：硬體流程 -->
+            <a href="k230-hardware-flow.html" class="card">
+                <div class="icon-box">
+                    <!-- 繪製一個「晶片」圖示：代表 K230 硬體 -->
+                    <svg viewBox="0 0 24 24">
+                        <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                        <rect x="9" y="9" width="6" height="6"></rect>
+                        <path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"></path>
+                    </svg>
+                </div>
+                <h2>K230 硬體流程圖</h2>
+                <p>硬體架構視覺化。查看 K230 雙核心架構、記憶體與周邊設備的數據流向圖。</p>
+            </a>
+        </div>
+
+        <footer>
+            &copy; 2025 K230 Project Lab
+        </footer>
+    </div>
+
+</body>
+</html>
