@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>培正中學 K230_YOLOv8 互動實驗室</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --code-bg-base: #1e1e1e;     
+            --code-bg-active: #323639;   
+            --code-text: #d4d4d4;
+            --code-text-dim: #999999;    
+            --highlight-color: #ffd700;
+            --panel-bg: #ffffff;
+            --junior-accent: #007bff;
+            --senior-accent: #6f42c1;
+            --senior-bg-light: #f3e5f5;
+            --border-radius: 12px;
+        }
+
+        /* 1. 佈局修復：確保 Body 不滾動，高度固定 */
+        body {
+            font-family: '微軟正黑體', 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 15px;
+            height: 100vh; /* 強制全屏高度 */
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* 禁止整個頁面出現滾動條 */
+        }
+
+        header { 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 10px; 
+            flex-shrink: 0; /* 防止 header 被壓縮 */
+            padding: 5px 0;
+        }
+        
+        /* 純 CSS/SVG 芯片圖標樣式 */
+        .chip-icon {
+            width: 50px;
+            height: 50px;
+            background: #2c3e50;
+            border-radius: 8px;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chip-icon::before {
+            content: "K230";
+            color: #ffd700;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 2;
+        }
+        /* 芯片引腳裝飾 */
+        .chip-pin {
+            position: absolute;
+            background: #95a5a6;
+        }
+        .pin-h { width: 6px; height: 2px; }
+        .pin-v { width: 2px; height: 6px; }
+        
+        /* 上下引腳 */
+        .chip-icon .pin-v:nth-child(1) { top: -4px; left: 10px; }
+        .chip-icon .pin-v:nth-child(2) { top: -4px; left: 24px; }
+        .chip-icon .pin-v:nth-child(3) { top: -4px; left: 38px; }
+        .chip-icon .pin-v:nth-child(4) { bottom: -4px; left: 10px; }
+        .chip-icon .pin-v:nth-child(5) { bottom: -4px; left: 24px; }
+        .chip-icon .pin-v:nth-child(6) { bottom: -4px; left: 38px; }
+        /* 左右引腳 */
+        .chip-icon .pin-h:nth-child(7) { left: -4px; top: 10px; }
+        .chip-icon .pin-h:nth-child(8) { left: -4px; top: 24px; }
+        .chip-icon .pin-h:nth-child(9) { left: -4px; top: 38px; }
+        .chip-icon .pin-h:nth-child(10) { right: -4px; top: 10px; }
+        .chip-icon .pin-h:nth-child(11) { right: -4px; top: 24px; }
+        .chip-icon .pin-h:nth-child(12) { right: -4px; top: 38px; }
+        
+        /* 芯片內部核心 */
+        .chip-core {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 1px solid #ffd700;
+            border-radius: 4px;
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        h1 { 
+            margin: 0; 
+            color: #2c3e50; 
+            font-size: 1.6rem; 
+            line-height: 1.2;
+        }
+
+        /* 2. 佈局修復：Flex 容器限制 */
+        .main-container {
+            display: flex;
+            flex: 1; /* 佔據剩餘空間 */
+            gap: 20px;
+            min-height: 0; /* 關鍵！防止子元素撐破 Flex 容器，讓內部滾動條生效 */
+            height: 100%;
+        }
+
+        /* --- 左側代碼區 --- */
+        .code-panel {
+            flex: 6;
+            background-color: var(--code-bg-base);
+            border-radius: var(--border-radius);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* 內部滾動 */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 1px solid #333;
+        }
+
+        .panel-header {
+            background: #252526;
+            padding: 10px 15px;
+            color: #fff;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #3e3e42;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .code-scroll-area {
+            flex: 1;
+            overflow-y: auto; /* 確保這裡可以滾動 */
+            padding: 10px 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--code-text);
+            white-space: pre;
+            scroll-behavior: smooth;
+            background-color: #121212;
+        }
+
+        .code-block {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-left: 4px solid #333;
+            margin: 2px 0;
+            background-color: var(--code-bg-base);
+            transition: all 0.2s ease-out;
+            position: relative;
+            opacity: 0.85; 
+            color: var(--code-text-dim);
+        }
+
+        .code-block:hover { 
+            background-color: #2a2d2e;
+            opacity: 1;
+            color: var(--code-text);
+        }
+
+        .code-block.active {
+            opacity: 1;
+            color: #fff;
+            background-color: var(--code-bg-active);
+            border-left: 6px solid var(--highlight-color);
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.5); 
+            z-index: 10;
+            transform: scale(1.005);
+        }
+
+        .code-block.active::after {
+            content: "◀ Reading";
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--highlight-color);
+            font-size: 12px;
+            font-weight: bold;
+            opacity: 0.8;
+            pointer-events: none;
+        }
+
+        .code-line {
+            display: block;
+            width: 100%;
+            border-radius: 2px;
+        }
+
+        /* 持久高亮樣式 */
+        .persistent-highlight { 
+            background-color: rgba(255, 215, 0, 0.9) !important; 
+            color: #000 !important; 
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+            font-weight: bold;
+        }
+
+        .ln { 
+            color: #555; 
+            display: inline-block; 
+            width: 35px; 
+            text-align: right; 
+            margin-right: 15px; 
+            user-select: none; 
+            font-size: 12px; 
+            border-right: 1px solid #444;
+            padding-right: 8px;
+        }
+        
+        .code-block.active .ln { color: #ddd; border-right-color: var(--highlight-color); }
+        
+        /* --- 右側解說區 --- */
+        .info-panel {
+            flex: 4;
+            background-color: var(--panel-bg);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow-y: auto; /* 確保這裡可以滾動 */
+            border: 1px solid #e0e0e0;
+            position: relative;
+            height: 100%; /* 確保高度填滿父容器 */
+            box-sizing: border-box; /* 包含 padding */
+        }
+
+        .info-content { animation: fadeIn 0.3s ease-in-out; padding-bottom: 50px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .info-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #333;
+            background: #ffd700;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .info-title { font-size: 1.5rem; color: #222; margin: 0 0 15px 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        
+        .junior-section {
+            font-size: 1.05rem;
+            color: #444;
+            line-height: 1.7;
+        }
+
+        .concept-card {
+            background: #f8f9fa;
+            border-left: 5px solid var(--junior-accent);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .concept-card h4 { margin: 0 0 8px 0; color: var(--junior-accent); display: flex; align-items: center; gap: 8px; font-size: 1.1rem; }
+
+        /* 🟪 高中生區塊 */
+        .senior-wrapper {
+            margin-top: 25px;
+            border-top: 1px dashed #ccc;
+            padding-top: 15px;
+        }
+
+        .senior-toggle {
+            background-color: white;
+            border: 1px solid var(--senior-accent);
+            color: var(--senior-accent);
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .senior-toggle:hover {
+            background-color: var(--senior-bg-light);
+            box-shadow: 0 2px 5px rgba(111, 66, 193, 0.2);
+        }
+
+        .senior-toggle::after {
+            content: '▼';
+            font-size: 0.8rem;
+            transition: transform 0.3s;
+        }
+        .senior-toggle.open::after { transform: rotate(180deg); }
+
+        .senior-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+            background-color: #fafafa;
+            border-radius: 0 0 8px 8px;
+            margin-top: 5px;
+        }
+
+        .senior-inner {
+            padding: 15px;
+            border: 1px solid #eee;
+            border-top: none;
+            color: #555;
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .senior-inner h4 { margin: 0 0 10px 0; color: var(--senior-accent); font-size: 1rem; }
+        
+        /* 互動關鍵詞 */
+        .interactive-keyword {
+            color: #d35400;
+            background-color: #fff5e6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            border: 1px solid #f5c6cb;
+            transition: all 0.2s;
+            display: inline-block;
+            margin: 0 2px;
+        }
+        .interactive-keyword:hover {
+            background-color: #d35400;
+            color: white;
+            border-color: #d35400;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }
+        .code-scroll-area::-webkit-scrollbar-track { background: #1e1e1e; }
+        .code-scroll-area::-webkit-scrollbar-thumb { background: #555; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <!-- 純 CSS 繪製的芯片圖標 -->
+        <div class="chip-icon">
+            <div class="chip-core"></div>
+            <div class="pin-v chip-pin"></div><div class="pin-v chip-pin"></div><div class="pin-v chip-pin"></div>
+            <div class="pin-v chip-pin"></div><div class="pin-v chip-pin"></div><div class="pin-v chip-pin"></div>
+            <div class="pin-h chip-pin"></div><div class="pin-h chip-pin"></div><div class="pin-h chip-pin"></div>
+            <div class="pin-h chip-pin"></div><div class="pin-h chip-pin"></div><div class="pin-h chip-pin"></div>
+        </div>
+        <h1>培正中學 K230_YOLOv8 互動實驗室</h1>
+    </header>
+
+    <div class="main-container">
+        <div class="code-panel">
+            <div class="panel-header">
+                <span>📄 YOLOv8检测示例.py</span>
+                <span>Python</span>
+            </div>
+            <div class="code-scroll-area" id="code-container"></div>
+        </div>
+
+        <div class="info-panel" id="info-panel">
+            <div style="text-align: center; color: #999; margin-top: 40%;">
+                <h3>👈 請點擊左側代碼塊開始學習</h3>
+                <p>代碼將會高亮顯示，解說將在此處呈現</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function key(text, targetText = null) {
+            // 處理搜索詞，轉義引號，確保 JS 字符串正確
+            const search = (targetText || text).replace(/'/g, "\\'"); 
+            return `<span class="interactive-keyword" onclick="highlightCode('${search}')">${text}</span>`;
+        }
+
+        const codeChunks = [
+            {
+                id: "imports_nms",
+                lines: [
+                    "import os,sys",
+                    "from media.sensor import *",
+                    "from media.display import *",
+                    "from media.media import *",
+                    "import nncase_runtime as nn",
+                    "import ulab.numpy as np",
+                    "import time,image,random,gc",
+                    "from libs.Utils import *",
+                    "",
+                    "#-----------------------------其他必要方法---------------------------------------------",
+                    "# 多目标检测 非最大值抑制方法实现",
+                    "def nms(boxes,scores,thresh):",
+                    "    \"\"\"Pure Python NMS baseline.\"\"\"",
+                    "    x1,y1,x2,y2 = boxes[:, 0],boxes[:, 1],boxes[:, 2],boxes[:, 3]",
+                    "    areas = (x2 - x1 + 1) * (y2 - y1 + 1)",
+                    "    order = np.argsort(scores,axis = 0)[::-1]",
+                    "    keep = []",
+                    "    while order.size > 0:",
+                    "        # ... (NMS 算法實現代碼省略以節省空間) ...",
+                    "    return keep"
+                ],
+                title: "1. 準備工具與 NMS 算法",
+                badge: "基礎準備",
+                juniorContent: `
+                    <p class="info-text">
+                        程式的一開始，我們先把工具箱拿出來。
+                        ${key('nncase_runtime')} 是用來控制 AI 芯片的，
+                        ${key('media')} 是控制攝像頭和屏幕的。
+                    </p>
+                    <div class="concept-card">
+                        <h4>🎓 ${key('nms', 'def nms')} (非極大值抑制) 是什麼？</h4>
+                        <p>想像一下，AI 看到一隻狗，它可能會激動地畫出 10 個框框說「這裡是狗！」。</p>
+                        <p><b>NMS 就像一位嚴格的老師</b>，它會檢查這些框框：</p>
+                        <ul>
+                            <li>如果幾個框框重疊太多，它只會保留分數最高（最準確）的那一個。</li>
+                            <li>把其他多餘的框框刪掉，讓畫面變乾淨。</li>
+                        </ul>
+                    </div>
+                `,
+                seniorContent: `
+                    <h4>🔬 數學原理：IoU 與 矩陣切片</h4>
+                    <p><b>1. IoU (Intersection over Union)：</b><br>
+                    NMS 的核心數學是計算兩個矩形框的交集面積除以聯集面積。當 IoU > 閾值時，我們視為重複偵測。</p>
+                    <p><b>2. 向量化操作：</b><br>
+                    代碼中的 ${key('boxes[:, 0]')} 使用了 Numpy 的切片語法。這比用 for 迴圈一個個讀取快得多，這在 Python 數據科學中稱為「向量化運算」，能大幅提升嵌入式設備的效率。
+                    同時使用了 ${key('np.argsort')} 來對分數進行快速排序。</p>
+                `
+            },
+            {
+                id: "letterbox",
+                lines: [
+                    "",
+                    "# 计算padding缩放比例和上下左右padding大小",
+                    "def letterbox_pad_param(input_size,output_size):",
+                    "    ratio_w = output_size[0] / input_size[0]  # 宽度缩放比例",
+                    "    ratio_h = output_size[1] / input_size[1]   # 高度缩放比例",
+                    "    ratio = min(ratio_w, ratio_h)  # 取较小的缩放比例",
+                    "    new_w = int(ratio * input_size[0])  # 新宽度",
+                    "    new_h = int(ratio * input_size[1])  # 新高度",
+                    "    dw = (output_size[0] - new_w) / 2  # 宽度差",
+                    "    dh = (output_size[1] - new_h) / 2  # 高度差",
+                    "    top = int(round(0))",
+                    "    bottom = int(round(dh * 2 + 0.1))",
+                    "    left = int(round(0))",
+                    "    right = int(round(dw * 2 - 0.1))",
+                    "    return top, bottom, left, right,ratio"
+                ],
+                title: "2. 圖片不變形術 (Letterbox)",
+                badge: "圖像數學",
+                juniorContent: `
+                    <p class="info-text">
+                        AI 模型通常需要正方形的圖片（例如 224x224），但我們的攝像頭拍出來的是長方形（1280x720）。
+                    </p>
+                    <div class="concept-card">
+                        <h4>🖼️ ${key('letterbox_pad_param')} 怎麼把長方形塞進正方形？</h4>
+                        <p>如果直接拉伸，物體會變形（人會變瘦長）。</p>
+                        <p><b>Letterbox</b> 函數的作用是：</p>
+                        <ol>
+                            <li>按比例縮小圖片，保持原樣 (計算 ${key('ratio')})。</li>
+                            <li>在多出來的空隙（通常是灰色或黑色）進行填充 (${key('dw')}, ${key('dh')})。</li>
+                        </ol>
+                        <p>這樣 AI 看到的物體形狀才是正常的！</p>
+                    </div>
+                `,
+                seniorContent: `
+                    <h4>🔬 數學原理：仿射變換預備</h4>
+                    <p><b>1. 縮放因子：</b><br>
+                    我們計算 ${key('ratio = min')}。這保證了圖像能完整塞入目標張量，且不會超出邊界。</p>
+                    <p><b>2. Padding 的意義：</b><br>
+                    ${key('dw')} 和 ${key('dh')} 代表了圖像在目標張量中的<b>偏移量 (Offset)</b>。這在後續將 AI 預測的坐標還原回原圖時非常重要，我們需要執行一個逆變換：<code>原圖坐標 = (預測坐標 - Offset) / ratio</code>。</p>
+                `
+            },
+            {
+                id: "sensor_display",
+                lines: [
+                    "",
+                    "#-----------------------------Sensor/Display初始化部分-------------------------------",
+                    "DISPLAY_WIDTH = ALIGN_UP(1920, 16)",
+                    "DISPLAY_HEIGHT = 1080",
+                    "AI_RGB888P_WIDTH = ALIGN_UP(1280, 16)",
+                    "AI_RGB888P_HEIGHT = 720",
+                    "",
+                    "sensor = Sensor()",
+                    "sensor.reset()",
+                    "#sensor.set_hmirror(False)",
+                    "#sensor.set_vflip(False)",
+                    "",
+                    "# 通道0直接给到显示VO，格式为YUV420",
+                    "sensor.set_framesize(width = DISPLAY_WIDTH, height = DISPLAY_HEIGHT,chn=CAM_CHN_ID_0)",
+                    "sensor.set_pixformat(Sensor.YUV420SP,chn=CAM_CHN_ID_0)",
+                    "# 通道1给到AI做算法处理，格式为RGB888P",
+                    "sensor.set_framesize(width = AI_RGB888P_WIDTH , height = AI_RGB888P_HEIGHT, chn=CAM_CHN_ID_1)",
+                    "sensor.set_pixformat(Sensor.RGBP888, chn=CAM_CHN_ID_1)",
+                    "",
+                    "# 绑定通道0的摄像头图像到屏幕",
+                    "sensor_bind_info = sensor.bind_info(x = 0, y = 0, chn = CAM_CHN_ID_0)",
+                    "Display.bind_layer(**sensor_bind_info, layer = Display.LAYER_VIDEO1)",
+                    "",
+                    "# OSD图像初始化,创建一帧和屏幕分辨率同样大的透明图像",
+                    "osd_img = image.Image(DISPLAY_WIDTH, DISPLAY_HEIGHT, image.ARGB8888)",
+                    "",
+                    "Display.init(Display.LT9611,width=DISPLAY_WIDTH,height=DISPLAY_HEIGHT,osd_num=1, to_ide = True)",
+                    "sensor._set_chn_fps(chn = CAM_CHN_ID_0, fps = Display.fps())"
+                ],
+                title: "3. 喚醒眼睛與屏幕 (Sensor & Display)",
+                badge: "K230 核心特色",
+                juniorContent: `
+                    <p class="info-text">
+                        這是 K230 最厲害的地方！它有「分身術」。
+                    </p>
+                    <div class="concept-card">
+                        <h4>👀 雙通道 (Dual Channel) 原理</h4>
+                        <p>${key('Sensor()')} (攝像頭) 同時產生兩路畫面：</p>
+                        <ul>
+                            <li><b>${key('CAM_CHN_ID_0')} (1920x1080)</b>：直接送到屏幕給你看。這條路不經過 CPU，所以就算 AI 算得慢，畫面也絕對不卡頓！</li>
+                            <li><b>${key('CAM_CHN_ID_1')} (1280x720)</b>：送到後台給 AI 進行分析。</li>
+                        </ul>
+                    </div>
+                    <p class="info-text">
+                        ${key('Display.bind_layer')} 就是把攝像頭和屏幕直接連起來。
+                        <br>我們還創建了一個 ${key('osd_img', 'osd_img = image.Image')}，這是一張<b>透明的玻璃紙</b>，我們稍後會把紅框框畫在這張紙上，然後貼在屏幕最上層。
+                    </p>
+                `,
+                seniorContent: `
+                    <h4>🔬 硬體原理：記憶體對齊與色彩空間</h4>
+                    <p><b>1. 記憶體對齊 (Memory Alignment)：</b><br>
+                    注意 ${key('ALIGN_UP', 'ALIGN_UP(1920, 16)')}。DMA 在讀取記憶體時，如果地址是 16 或 32 的倍數，效率最高。未對齊可能導致 Bus Error。</p>
+                    <p><b>2. YUV vs RGB：</b><br>
+                    顯示用 ${key('Sensor.YUV420SP')} 是因為它壓縮了色彩數據，節省顯示頻寬。AI 用 ${key('Sensor.RGBP888')} (Planar) 是因為大多數 AI 模型是在 RGB 數據集上訓練的，且 Planar 格式更適合 NPU 進行矩陣並行運算。</p>
+                `
+            },
+            {
+                id: "ai_init",
+                lines: [
+                    "",
+                    "#-----------------------------AI模型初始化部分-------------------------------",
+                    "kmodel_path=\"/sdcard/examples/kmodel/yolov8n_224.kmodel\"",
+                    "labels = [\"person\", \"bicycle\", \"car\", ...]", 
+                    "model_input_size=[224,224]",
+                    "confidence_threshold = 0.3",
+                    "nms_threshold = 0.4",
+                    "max_boxes_num = 50",
+                    "colors=get_colors(len(labels))",
+                    "",
+                    "# 初始化ai2d预处理",
+                    "ai2d=nn.ai2d()",
+                    "ai2d.set_dtype(nn.ai2d_format.NCHW_FMT, nn.ai2d_format.NCHW_FMT, np.uint8, np.uint8)",
+                    "top,bottom,left,right,ratio=letterbox_pad_param([AI_RGB888P_WIDTH,AI_RGB888P_HEIGHT],model_input_size)",
+                    "ai2d.set_pad_param(True,[0,0,0,0,top,bottom,left,right], 0, [128,128,128])",
+                    "ai2d.set_resize_param(True,nn.interp_method.tf_bilinear, nn.interp_mode.half_pixel)",
+                    "ai2d_builder = ai2d.build([1,3,AI_RGB888P_HEIGHT,AI_RGB888P_WIDTH], [1,3,model_input_size[1],model_input_size[0]])",
+                    "",
+                    "input_init_data = np.ones((1,3,model_input_size[1],model_input_size[0]),dtype=np.uint8)",
+                    "kpu_input_tensor = nn.from_numpy(input_init_data)",
+                    "",
+                    "# 创建kpu实例",
+                    "kpu=nn.kpu()",
+                    "kpu.load_kmodel(kmodel_path)"
+                ],
+                title: "4. 聘請修圖師與數學家 (AI2D & KPU)",
+                badge: "硬件加速",
+                juniorContent: `
+                    <p class="info-text">
+                        這裡我們初始化了兩個強大的硬件助手：
+                    </p>
+                    <div class="concept-card">
+                        <h4>🎨 ${key('ai2d', 'nn.ai2d()')} (修圖大師)</h4>
+                        <p><code>nn.ai2d()</code> 是專門處理圖片的硬件。</p>
+                        <p>我們告訴它：「待會兒你會收到 1280x720 的圖片，請幫我<b>縮小</b>並<b>填充</b> (${key('set_pad_param')}) 成 224x224，然後交給 KPU。」這一切都是自動完成的，不佔用 CPU！</p>
+                    </div>
+                    <div class="concept-card">
+                        <h4>🧠 ${key('kpu', 'nn.kpu()')} (數學天才)</h4>
+                        <p><code>nn.kpu()</code> 是 AI 的大腦。</p>
+                        <p>${key('load_kmodel')} 就像是給大腦下載了一本教科書（YOLOv8 模型），讓它學會如何識別 80 種物體（人、車、貓、狗...）。</p>
+                    </div>
+                `,
+                seniorContent: `
+                    <h4>🔬 進階原理：量化與零拷貝</h4>
+                    <p><b>1. 模型量化 (Quantization)：</b><br>
+                    代碼中使用 ${key('np.uint8')} (0-255 整數) 而非 float32。這意味著模型經過了量化，雖然損失了微小的精度，但模型體積縮小了 4 倍，推理速度大幅提升。</p>
+                    <p><b>2. Zero-Copy (零拷貝)：</b><br>
+                    ${key('ai2d_builder')} 建立了數據流管道。圖像數據直接在 AI2D 和 KPU 的專用記憶體之間傳遞，不需要 CPU 介入進行 memcpy，這是嵌入式 AI 高效的關鍵。</p>
+                `
+            },
+            {
+                id: "main_loop_preprocess",
+                lines: [
+                    "",
+                    "MediaManager.init()",
+                    "sensor.run()",
+                    "fps = time.clock()",
+                    "while True:",
+                    "    fps.tick()",
+                    "    #------------------------从摄像头dump一帧图像并处理----------------------------------",
+                    "    # 从摄像头1通道dump一帧RGB888P格式的Image图像",
+                    "    img=sensor.snapshot(chn=CAM_CHN_ID_1)",
+                    "    # 转换成ulab.numpy.ndarray格式的数据，CHW",
+                    "    img_np=img.to_numpy_ref()",
+                    "    # 创建nncase_runtime.tensor用于给到ai2d进行预处理",
+                    "    ai2d_input_tensor=nn.from_numpy(img_np)",
+                    "    #------------------------推理前的预处理步骤----------------------------------------",
+                    "    # 执行预处理过程",
+                    "    ai2d_builder.run(ai2d_input_tensor, kpu_input_tensor)"
+                ],
+                title: "5. 主循環：拍照與修圖",
+                badge: "運行階段",
+                juniorContent: `
+                    <p class="info-text">
+                        程式進入了 ${key('while True')} 無限循環，就像心臟跳動一樣，一幀接一幀地處理。
+                    </p>
+                    <ol>
+                        <li><b>${key('snapshot', 'sensor.snapshot')}</b>：從通道 1 抓取一張照片（給 AI 用的）。注意，通道 0 的畫面已經自動跑到屏幕上了，我們不用管。</li>
+                        <li><b>轉換數據</b>：把圖片變成數字矩陣 (${key('to_numpy_ref')})。</li>
+                        <li><b>${key('ai2d_builder.run')}</b>：修圖大師開工！把大圖瞬間變成 KPU 需要的小圖 (Tensor)。</li>
+                    </ol>
+                `,
+                seniorContent: `
+                    <h4>🔬 程式技巧：引用 vs 拷貝</h4>
+                    <p><b>1. 引用 (Reference)：</b><br>
+                    ${key('to_numpy_ref', 'img.to_numpy_ref()')} 是一個極致優化。它不複製圖像數據，只是創建了一個指向底層 C++ 記憶體的 Numpy 包裝器 (Wrapper)。如果這裡發生了數據拷貝，FPS 可能會掉一半。</p>
+                    <p><b>2. 管道並行：</b><br>
+                    在理想情況下，當 AI2D 正在處理第 N 幀時，Sensor 已經在採集第 N+1 幀，實現了流水線並行。</p>
+                `
+            },
+            {
+                id: "inference",
+                lines: [
+                    "    #------------------------使用kpu完成模型推理--------------------------------------",
+                    "    # 设置kpu的第0个输入为ai2d预处理后的tensor，如果有多个，可以依次设置",
+                    "    kpu.set_input_tensor(0,kpu_input_tensor)",
+                    "    # 在kpu上执行模型推理",
+                    "    kpu.run()",
+                    "    #------------------------获取模型推理结束的输出----------------------------------------",
+                    "    # 获取模型推理的输出tensor，并将其转换成ulab.numpy.ndarray数据进行后处理",
+                    "    results=[]",
+                    "    for i in range(kpu.outputs_size()):",
+                    "        output_i_tensor = kpu.get_output_tensor(i)",
+                    "        result_i = output_i_tensor.to_numpy()",
+                    "        results.append(result_i)",
+                    "        del output_i_tensor"
+                ],
+                title: "6. 大腦思考 (KPU Inference)",
+                badge: "AI 核心",
+                juniorContent: `
+                    <p class="info-text">
+                        現在輪到 KPU 大顯身手了。
+                    </p>
+                    <div class="concept-card">
+                        <h4>⚡ ${key('kpu.run()')}</h4>
+                        <p>這行代碼執行時，芯片內部的神經網絡開始瘋狂運算。</p>
+                        <p>它在分析圖片裡的線條、顏色、紋理。算完後，它會吐出一堆數字 (Tensor)。這些數字人類看不懂，它們代表了「這裡好像有人，信心 80%」、「那裡好像有車，信心 90%」。</p>
+                    </div>
+                `,
+                seniorContent: `
+                    <h4>🔬 深度學習：前向傳播</h4>
+                    <p><b>1. 前向傳播 (Forward Propagation)：</b><br>
+                    ${key('kpu.run()')} 觸發了模型的前向傳播。數據流經卷積層 (Conv)、批歸一化 (BatchNorm) 和激活函數 (SiLU)，提取特徵圖 (Feature Maps)。</p>
+                    <p><b>2. 輸出張量：</b><br>
+                    YOLOv8 的輸出通常包含 (Batch, 4+Classes, Anchors)。這裡的 ${key('get_output_tensor')} 獲取的就是這組原始的預測矩陣，需要後續解碼。</p>
+                `
+            },
+            {
+                id: "post_process",
+                lines: [
+                    "    #------------------------推理输出的后处理步骤----------------------------------------",
+                    "    output_data=results[0][0].transpose()",
+                    "    boxes_ori = output_data[:,0:4]",
+                    "    class_ori = output_data[:,4:]",
+                    "    class_res=np.argmax(class_ori,axis=-1)",
+                    "    scores_ = np.max(class_ori,axis=-1)",
+                    "    boxes,inds,scores=[],[],[]",
+                    "    for i in range(len(boxes_ori)):",
+                    "        if scores_[i]>confidence_threshold:",
+                    "            x,y,w,h=boxes_ori[i][0],boxes_ori[i][1],boxes_ori[i][2],boxes_ori[i][3]",
+                    "            x1 = int((x - 0.5 * w)/ratio)",
+                    "            y1 = int((y - 0.5 * h)/ratio)",
+                    "            x2 = int((x + 0.5 * w)/ratio)",
+                    "            y2 = int((y + 0.5 * h)/ratio)",
+                    "            boxes.append([x1,y1,x2,y2])",
+                    "            inds.append(class_res[i])",
+                    "            scores.append(scores_[i])",
+                    "    if len(boxes)==0:",
+                    "        continue",
+                    "    boxes = np.array(boxes)",
+                    "    scores = np.array(scores)",
+                    "    inds = np.array(inds)",
+                    "    # NMS过程,去除重叠的冗余框，keep为",
+                    "    keep = nms(boxes,scores,nms_threshold)",
+                    "    dets = np.concatenate((boxes, scores.reshape((len(boxes),1)), inds.reshape((len(boxes),1))), axis=1)",
+                    "    det_res = []",
+                    "    for keep_i in keep:",
+                    "        det_res.append(dets[keep_i])",
+                    "    det_res = np.array(det_res)",
+                    "    det_res = det_res[:max_boxes_num, :]"
+                ],
+                title: "7. 翻譯天書 (Post-process)",
+                badge: "數據處理",
+                juniorContent: `
+                    <p class="info-text">
+                        KPU 吐出的數字需要翻譯成我們能看懂的「框框」。
+                    </p>
+                    <ol>
+                        <li><b>Transpose & Slice</b>：把數據切開，前 4 個數字是位置 (x,y,w,h)，後面的是類別分數。</li>
+                        <li><b>${key('confidence_threshold', '>confidence_threshold')} (門檻)</b>：如果 AI 對某個物體的信心低於 0.3 (30%)，我們就當作沒看見，忽略它。</li>
+                        <li><b>坐標還原</b>：AI 是在 224x224 的小圖上看到的，我們要除以 ${key('ratio', '/ratio')}，算出它在 1280x720 大圖上的真實位置。</li>
+                        <li><b>${key('nms', 'keep = nms')}</b>：再次呼叫我們的「嚴格老師」，把重疊的框框刪掉。</li>
+                    </ol>
+                `,
+                seniorContent: `
+                    <h4>🔬 算法權衡：閾值與矩陣操作</h4>
+                    <p><b>1. 閾值權衡 (Threshold Trade-off)：</b><br>
+                    ${key('confidence_threshold')} 決定了模型的靈敏度。調高它，精確率 (Precision) 變高但容易漏檢；調低它，召回率 (Recall) 變高但誤報增加。</p>
+                    <p><b>2. Argmax：</b><br>
+                    ${key('np.argmax', 'np.argmax(class_ori,axis=-1)')} 是一個高效的統計函數，它能瞬間在 80 個類別分數中找到分數最高的那個類別的索引值。
+                    同時我們使用了 ${key('transpose', '.transpose()')} 來調整維度以符合 Numpy 的處理習慣。</p>
+                `
+            },
+            {
+                id: "draw_display",
+                lines: [
+                    "    #------------------------绘制检测框结果----------------------------------------",
+                    "    osd_img.clear()",
+                    "    for det in det_res:",
+                    "        x_1, y_1, x_2, y_2 = map(lambda pos: int(round(pos, 0)), det[:4])",
+                    "        draw_x= int(x_1 * DISPLAY_WIDTH // AI_RGB888P_WIDTH)",
+                    "        draw_y= int(y_1 * DISPLAY_HEIGHT // AI_RGB888P_HEIGHT)",
+                    "        draw_w = int((x_2 - x_1) * DISPLAY_WIDTH // AI_RGB888P_WIDTH)",
+                    "        draw_h = int((y_2 - y_1) * DISPLAY_HEIGHT // AI_RGB888P_HEIGHT)",
+                    "        osd_img.draw_rectangle(draw_x,draw_y, draw_w, draw_h, color=colors[int(det[5])],thickness=4)",
+                    "        osd_img.draw_string_advanced( draw_x , max(0,draw_y-50), 24, labels[int(det[5])] + \" {0:.3f}\".format(det[4]), color=colors[int(det[5])])",
+                    "    #------------------------在屏幕显示检测框结果----------------------------------------",
+                    "    Display.show_image(osd_img)",
+                    "    print(\"det fps:\",fps.fps())",
+                    "    gc.collect()",
+                    "",
+                    "#退出循环，释放资源",
+                    "del ai2d",
+                    "del kpu",
+                    "sensor.stop()",
+                    "Display.deinit()",
+                    "time.sleep_ms(50)",
+                    "MediaManager.deinit()",
+                    "nn.shrink_memory_pool()"
+                ],
+                title: "8. 畫圖與展示 (Draw & Show)",
+                badge: "最終成果",
+                juniorContent: `
+                    <p class="info-text">
+                        最後一步！
+                    </p>
+                    <div class="concept-card">
+                        <h4>🖍️ 在玻璃紙上畫畫</h4>
+                        <p>${key('osd_img.clear()')}：先把上一幀畫的框框擦乾淨。</p>
+                        <p>然後，我們把 AI 算出來的坐標，換算成屏幕坐標 (1920x1080)，用 ${key('draw_rectangle')} 畫出彩色的框框，並寫上物體的名字（如 "person"）。</p>
+                    </div>
+                    <p class="info-text">
+                        <b>${key('Display.show_image')}</b>：把這張畫好框框的透明玻璃紙，蓋在攝像頭的畫面上。
+                        <br>
+                        <b>${key('gc.collect()')}</b>：打掃衛生，清理內存垃圾，確保機器不會變慢。
+                    </p>
+                `,
+                seniorContent: `
+                    <h4>🔬 圖形渲染：Alpha Blending</h4>
+                    <p><b>1. 硬件圖層疊加：</b><br>
+                    ${key('Display.show_image')} 利用了 K230 的硬件圖層疊加功能。硬件會自動將 Video 層（攝像頭）和 OSD 層（框框）進行透明度混合 (Alpha Blending)，這比用 CPU 逐像素修改圖像快得多，且不影響原始視頻流。</p>
+                    <p><b>2. 垃圾回收 (GC)：</b><br>
+                    在嵌入式 Python (MicroPython) 中，頻繁分配小對象（如列表、矩陣）會導致內存碎片。${key('gc.collect()')} 強制回收內存，防止 Out of Memory 錯誤。</p>
+                `
+            }
+        ];
+
+        const codeContainer = document.getElementById('code-container');
+        const infoPanel = document.getElementById('info-panel');
+        let lineCounter = 1;
+
+        // 輔助函數：清除所有持久高亮
+        function clearHighlights() {
+            document.querySelectorAll('.persistent-highlight').forEach(el => {
+                el.classList.remove('persistent-highlight');
+            });
+        }
+
+        // 初始化代碼區
+        codeChunks.forEach((chunk, index) => {
+            const div = document.createElement('div');
+            div.className = 'code-block';
+            div.dataset.index = index;
+            div.id = `chunk-${index}`; 
+
+            let html = '';
+            chunk.lines.forEach(line => {
+                let formattedLine = line
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;");
+                // 注意：這裡將代碼內容放在一個獨立的 span 中，方便後續 JS 搜索
+                html += `<div class="code-line"><span class="ln">${lineCounter++}</span><span class="code-text-content">${formattedLine}</span></div>`;
+            });
+            div.innerHTML = html;
+
+            div.addEventListener('click', function() {
+                // 規則3：點擊下一個區塊時，清除之前的高亮
+                clearHighlights();
+
+                const isActive = this.classList.contains('active');
+                document.querySelectorAll('.code-block').forEach(el => el.classList.remove('active'));
+                this.classList.add('active');
+                if (!isActive) {
+                    updateInfoPanel(chunk);
+                }
+            });
+
+            codeContainer.appendChild(div);
+        });
+
+        // 更新右側面板
+        function updateInfoPanel(data) {
+            infoPanel.innerHTML = `
+                <div class="info-content">
+                    <span class="info-badge">${data.badge}</span>
+                    <h2 class="info-title">${data.title}</h2>
+                    
+                    <div class="junior-section">
+                        ${data.juniorContent}
+                    </div>
+
+                    <div class="senior-wrapper">
+                        <div class="senior-toggle" onclick="toggleSenior(this)">
+                            <span>🔬 點擊查看進階原理 (高中生)</span>
+                        </div>
+                        <div class="senior-content">
+                            <div class="senior-inner">
+                                ${data.seniorContent}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.toggleSenior = function(element) {
+            element.classList.toggle('open');
+            const content = element.nextElementSibling;
+            
+            if (content.style.maxHeight) {
+                // 規則2：收起高中知識菜單時，清除高亮
+                clearHighlights();
+                content.style.maxHeight = null;
+            } else {
+                content.style.maxHeight = content.scrollHeight + "px";
+            }
+        };
+
+        // 修復後的高亮代碼功能
+        window.highlightCode = function(keyword) {
+            // 規則1：點擊下一個關鍵詞時，先清除之前的高亮
+            clearHighlights();
+
+            const allCodeBlocks = document.querySelectorAll('.code-block');
+            let found = false;
+
+            // 遍歷所有代碼塊
+            for (let block of allCodeBlocks) {
+                if (found) break;
+
+                // 獲取該塊內所有的代碼行（排除行號）
+                const lines = block.querySelectorAll('.code-line');
+                
+                for (let line of lines) {
+                    const contentSpan = line.querySelector('.code-text-content');
+                    if (!contentSpan) continue;
+
+                    // 獲取純文本內容
+                    const rawText = contentSpan.textContent;
+                    
+                    // 簡單的包含檢查
+                    if (rawText.includes(keyword)) {
+                        // 如果關鍵詞在另一個區塊，先切換區塊
+                        if (!block.classList.contains('active')) {
+                            block.click();
+                        }
+                        
+                        // 滾動到該行
+                        line.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
+                        
+                        // 添加高亮
+                        line.classList.add('persistent-highlight');
+                        found = true;
+                        break; // 找到第一個匹配項就停止
+                    }
+                }
+            }
+            
+            if (!found) {
+                console.warn("Keyword not found:", keyword);
+            }
+        };
+
+        if (codeChunks.length > 0) {
+            document.querySelector('.code-block').click();
+        }
+
+    </script>
+</body>
+</html>
